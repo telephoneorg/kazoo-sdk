@@ -217,12 +217,11 @@ class Client(object):
 
     """
     __metaclass__ = RestClientMetaClass
-    BASE_URL = "http://api.2600hz.com:8000/v1"
+    base_url = "http://api.2600hz.com:8000/v1"
 
     _accounts_resource = RestResource("account",
                                       "/accounts/{account_id}",
-                                      exclude_methods=["list",
-                                                       "delete", "create"],
+                                      exclude_methods=[],
                                       extra_views=[
                                           {"name": "get_account_children",
                                            "path": "children",
@@ -312,10 +311,13 @@ class Client(object):
     )
 
     def __init__(self, api_key=None, password=None, account_name=None,
-                 username=None):
+                 username=None, base_url=None):
         if not api_key and not password:
             raise RuntimeError("You must pass either an api_key or an "
                                "account name/password pair")
+
+        if base_url is not None:
+            self.base_url = base_url
 
         if password or account_name or username:
             if not (password and account_name and username):
@@ -338,7 +340,7 @@ class Client(object):
         which will be automatically used for all further requests
         """
         if not self._authenticated:
-            self.auth_data = self.auth_request.execute(self.BASE_URL)
+            self.auth_data = self.auth_request.execute(self.base_url)
             self.auth_token = self.auth_data["auth_token"]
             self._authenticated = True
         return self.auth_token
@@ -346,7 +348,7 @@ class Client(object):
     def _execute_request(self, request, **kwargs):
         if request.auth_required:
             kwargs["token"] = self.auth_token
-        return request.execute(self.BASE_URL, **kwargs)
+        return request.execute(self.base_url, **kwargs)
 
     def search_phone_numbers(self, prefix, quantity=10):
         request = KazooRequest("/phone_numbers", get_params={
