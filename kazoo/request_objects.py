@@ -8,6 +8,7 @@ import requests
 import urllib
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class KazooRequest(object):
