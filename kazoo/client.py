@@ -309,6 +309,9 @@ class Client(object):
         "/accounts/{account_id}/phone_numbers/{phone_number}/docs/{filename}",
         methods=["delete"],
     )
+    _webhook_resource = RestResource(
+        "webhook",
+        "/accounts/{account_id}/webhooks/{webhook_id}")
 
     def __init__(self, api_key=None, password=None, account_name=None,
                  username=None, base_url=None):
