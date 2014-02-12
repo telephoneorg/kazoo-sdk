@@ -74,7 +74,7 @@ class KazooRequest(object):
         raw_response = req_func(full_url, headers=headers, **kwargs)
         if raw_response.status_code == 500:
             self._handle_500_error(raw_response)
-        response = raw_response.json
+        response = raw_response.json()
         if response["status"] == "error":
             logger.debug("There was an error, full error text is: {0}".format(
                 raw_response.content))

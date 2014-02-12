@@ -13,7 +13,7 @@ setup(
     author="Alex Good",
     url="http://2600hz.com/platform.html",
     packages = ["kazoo"],
-    install_requires=["requests >=0.14,< 1.0"],
+    install_requires=["requests >=2.2.1"],
     license="MIT License",
     readme='README.rst',
 )
