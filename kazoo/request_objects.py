@@ -93,8 +93,8 @@ class KazooRequest(object):
 
     def _handle_500_error(self, raw_response):
         request_id = raw_response.headers["X-Request-Id"]
-        if raw_response.json:
-            message = raw_response.json["data"]
+        if raw_response.json():
+            message = raw_response.json()["data"]
         else:
             message = "There was no error message"
         raise exceptions.KazooApiError("Internal Server Error, "
