@@ -246,6 +246,8 @@ class Client(object):
     _global_resources = RestResource(
         "global_resource",
         "/accounts/{account_id}/global_resources/{resource_id}")
+    _groups_resource = RestResource("group",
+                                   "/accounts/{account_id}/groups/{group_id}")
     _limits_resource = RestResource("limit",
                                     "/accounts/{account_id}/limits/{ignored}",
                                     methods=["list"])
