@@ -6,10 +6,20 @@ import logging
 import re
 import requests
 import urllib
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+import ssl
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+class HttpsAdapterHack(HTTPAdapter):
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = PoolManager(num_pools=connections,
+                                       maxsize=maxsize,
+                                       block=block,
+                                       ssl_version=ssl.PROTOCOL_TLSv1)
 
 class KazooRequest(object):
     http_methods = ["get", "post", "put", "delete"]
@@ -72,6 +82,10 @@ class KazooRequest(object):
         if files:
             kwargs["files"] = files
         raw_response = req_func(full_url, headers=headers, **kwargs)
+        if base_url.startswith('https'):
+            s = requests.Session()
+            s.mount('https://', HttpsAdapterHack())
+
         if raw_response.status_code == 500:
             self._handle_500_error(raw_response)
         response = raw_response.json()
