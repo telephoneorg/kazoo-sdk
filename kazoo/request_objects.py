@@ -100,7 +100,7 @@ class KazooRequest(object):
             raise exceptions.KazooApiBadDataError(error_data["data"])
         raise exceptions.KazooApiError("There was an error calling the kazoo api, "
                                        "Request ID was {1}"
-                                       "the error was {0}".format(
+                                       " the error was {0}".format(
                                            error_data["message"],
                                            error_data["request_id"],
                                        ))
