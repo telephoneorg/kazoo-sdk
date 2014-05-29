@@ -373,3 +373,15 @@ class Client(object):
         request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
                                method="post")
         return self._execute_request(request, files={filename: file_obj})
+
+    def list_devices_by_owner(self, accountId, ownerId):
+        request = KazooRequest("/accounts/{account_id}/devices", get_params={"filter_owner_id": ownerId})
+        request.auth_required = True
+
+        return self._execute_request(request, account_id=accountId)
+
+    def list_child_accounts(self, parentAccountId):
+        request = KazooRequest("/accounts/{account_id}/children")
+        request.auth_required = True
+
+        return self._execute_request(request, account_id=parentAccountId)
