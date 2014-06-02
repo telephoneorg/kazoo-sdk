@@ -1,10 +1,13 @@
 import json
 import requests
 import kazoo.exceptions as exceptions
+import logging
 from kazoo.request_objects import KazooRequest, UsernamePasswordAuthRequest, \
     ApiKeyAuthRequest
 from kazoo.rest_resources import RestResource
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class RestClientMetaClass(type):
 
@@ -351,9 +354,20 @@ class Client(object):
         return self.auth_token
 
     def _execute_request(self, request, **kwargs):
+        from exceptions import KazooApiAuthenticationError
+
         if request.auth_required:
             kwargs["token"] = self.auth_token
-        return request.execute(self.base_url, **kwargs)
+
+        try:
+            return request.execute(self.base_url, **kwargs)
+        except KazooApiAuthenticationError as e:
+            logger.error('Kazoo authentication failed. Attempting to re-authentication and retry: {}'.format(e))
+            self._authenticated = False
+            self.auth_token = None
+            self.authenticate()
+            kwargs["token"] = self.auth_token
+            return request.execute(self.base_url, **kwargs)
 
     def search_phone_numbers(self, prefix, quantity=10):
         request = KazooRequest("/phone_numbers", get_params={

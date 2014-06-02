@@ -56,11 +56,11 @@ class KazooRequest(object):
         return self.path.format(**params)
 
     def execute(self, base_url, method=None, data=None, token=None, files=None, **kwargs):
-        if self.auth_required and token is None:
-            error_message = ("This method requires an auth token, be sure to "
-                             "call client.authenticate() before making API "
-                             "calls")
-            raise exceptions.AuthenticationRequiredError(error_message)
+        # if self.auth_required and token is None:
+        #     error_message = ("This method requires an auth token, be sure to "
+        #                      "call client.authenticate() before making API "
+        #                      "calls")
+        #     raise exceptions.AuthenticationRequiredError(error_message)
         if method is None:
             method = self.method
         if method.lower() not in self.http_methods:
@@ -98,6 +98,10 @@ class KazooRequest(object):
     def _handle_error(self, error_data):
         if error_data["error"] == "400" and ("data" in error_data):
             raise exceptions.KazooApiBadDataError(error_data["data"])
+
+        if error_data['error'] == '401':
+            raise exceptions.KazooApiAuthenticationError('Invalid credentials')
+
         raise exceptions.KazooApiError("There was an error calling the kazoo api, "
                                        "Request ID was {1}"
                                        " the error was {0}".format(
