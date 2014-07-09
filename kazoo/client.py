@@ -382,6 +382,12 @@ class Client(object):
         return self._execute_request(request,
                                      account_id=acct_id, phone_number=phone_number)
 
+    def get_phone_number(self, acct_id, phone_number):
+        request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
+                               method="get")
+        return self._execute_request(request,
+                                     account_id=acct_id, phone_number=phone_number)
+
     def upload_phone_number_file(self, acct_id, phone_number, filename, file_obj):
         """Uploads a file like object as part of a phone numbers documents"""
         request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
