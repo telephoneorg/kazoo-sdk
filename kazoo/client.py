@@ -1,10 +1,13 @@
 import json
 import requests
 import kazoo.exceptions as exceptions
+import logging
 from kazoo.request_objects import KazooRequest, UsernamePasswordAuthRequest, \
     ApiKeyAuthRequest
 from kazoo.rest_resources import RestResource
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class RestClientMetaClass(type):
 
@@ -217,12 +220,11 @@ class Client(object):
 
     """
     __metaclass__ = RestClientMetaClass
-    BASE_URL = "http://api.2600hz.com:8000/v1"
+    base_url = "http://api.2600hz.com:8000/v1"
 
     _accounts_resource = RestResource("account",
                                       "/accounts/{account_id}",
-                                      exclude_methods=["list",
-                                                       "delete", "create"],
+                                      exclude_methods=[],
                                       extra_views=[
                                           {"name": "get_account_children",
                                            "path": "children",
@@ -247,6 +249,8 @@ class Client(object):
     _global_resources = RestResource(
         "global_resource",
         "/accounts/{account_id}/global_resources/{resource_id}")
+    _groups_resource = RestResource("group",
+                                   "/accounts/{account_id}/groups/{group_id}")
     _limits_resource = RestResource("limit",
                                     "/accounts/{account_id}/limits/{ignored}",
                                     methods=["list"])
@@ -310,12 +314,18 @@ class Client(object):
         "/accounts/{account_id}/phone_numbers/{phone_number}/docs/{filename}",
         methods=["delete"],
     )
+    _webhook_resource = RestResource(
+        "webhook",
+        "/accounts/{account_id}/webhooks/{webhook_id}")
 
     def __init__(self, api_key=None, password=None, account_name=None,
-                 username=None):
+                 username=None, base_url=None):
         if not api_key and not password:
             raise RuntimeError("You must pass either an api_key or an "
                                "account name/password pair")
+
+        if base_url is not None:
+            self.base_url = base_url
 
         if password or account_name or username:
             if not (password and account_name and username):
@@ -338,15 +348,26 @@ class Client(object):
         which will be automatically used for all further requests
         """
         if not self._authenticated:
-            self.auth_data = self.auth_request.execute(self.BASE_URL)
+            self.auth_data = self.auth_request.execute(self.base_url)
             self.auth_token = self.auth_data["auth_token"]
             self._authenticated = True
         return self.auth_token
 
     def _execute_request(self, request, **kwargs):
+        from exceptions import KazooApiAuthenticationError
+
         if request.auth_required:
             kwargs["token"] = self.auth_token
-        return request.execute(self.BASE_URL, **kwargs)
+
+        try:
+            return request.execute(self.base_url, **kwargs)
+        except KazooApiAuthenticationError as e:
+            logger.error('Kazoo authentication failed. Attempting to re-authentication and retry: {}'.format(e))
+            self._authenticated = False
+            self.auth_token = None
+            self.authenticate()
+            kwargs["token"] = self.auth_token
+            return request.execute(self.base_url, **kwargs)
 
     def search_phone_numbers(self, prefix, quantity=10):
         request = KazooRequest("/phone_numbers", get_params={
@@ -361,8 +382,26 @@ class Client(object):
         return self._execute_request(request,
                                      account_id=acct_id, phone_number=phone_number)
 
+    def get_phone_number(self, acct_id, phone_number):
+        request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
+                               method="get")
+        return self._execute_request(request,
+                                     account_id=acct_id, phone_number=phone_number)
+
     def upload_phone_number_file(self, acct_id, phone_number, filename, file_obj):
         """Uploads a file like object as part of a phone numbers documents"""
         request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
                                method="post")
         return self._execute_request(request, files={filename: file_obj})
+
+    def list_devices_by_owner(self, accountId, ownerId):
+        request = KazooRequest("/accounts/{account_id}/devices", get_params={"filter_owner_id": ownerId})
+        request.auth_required = True
+
+        return self._execute_request(request, account_id=accountId)
+
+    def list_child_accounts(self, parentAccountId):
+        request = KazooRequest("/accounts/{account_id}/children")
+        request.auth_required = True
+
+        return self._execute_request(request, account_id=parentAccountId)

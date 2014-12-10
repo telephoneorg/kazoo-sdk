@@ -6,9 +6,20 @@ import logging
 import re
 import requests
 import urllib
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.poolmanager import PoolManager
+import ssl
+
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
+class HttpsAdapterHack(HTTPAdapter):
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = PoolManager(num_pools=connections,
+                                       maxsize=maxsize,
+                                       block=block,
+                                       ssl_version=ssl.PROTOCOL_TLSv1)
 
 class KazooRequest(object):
     http_methods = ["get", "post", "put", "delete"]
@@ -45,11 +56,11 @@ class KazooRequest(object):
         return self.path.format(**params)
 
     def execute(self, base_url, method=None, data=None, token=None, files=None, **kwargs):
-        if self.auth_required and token is None:
-            error_message = ("This method requires an auth token, be sure to "
-                             "call client.authenticate() before making API "
-                             "calls")
-            raise exceptions.AuthenticationRequiredError(error_message)
+        # if self.auth_required and token is None:
+        #     error_message = ("This method requires an auth token, be sure to "
+        #                      "call client.authenticate() before making API "
+        #                      "calls")
+        #     raise exceptions.AuthenticationRequiredError(error_message)
         if method is None:
             method = self.method
         if method.lower() not in self.http_methods:
@@ -71,9 +82,13 @@ class KazooRequest(object):
         if files:
             kwargs["files"] = files
         raw_response = req_func(full_url, headers=headers, **kwargs)
+        if base_url.startswith('https'):
+            s = requests.Session()
+            s.mount('https://', HttpsAdapterHack())
+
         if raw_response.status_code == 500:
             self._handle_500_error(raw_response)
-        response = raw_response.json
+        response = raw_response.json()
         if response["status"] == "error":
             logger.debug("There was an error, full error text is: {0}".format(
                 raw_response.content))
@@ -83,17 +98,21 @@ class KazooRequest(object):
     def _handle_error(self, error_data):
         if error_data["error"] == "400" and ("data" in error_data):
             raise exceptions.KazooApiBadDataError(error_data["data"])
+
+        if error_data['error'] == '401':
+            raise exceptions.KazooApiAuthenticationError('Invalid credentials')
+
         raise exceptions.KazooApiError("There was an error calling the kazoo api, "
                                        "Request ID was {1}"
-                                       "the error was {0}".format(
+                                       " the error was {0}".format(
                                            error_data["message"],
                                            error_data["request_id"],
                                        ))
 
     def _handle_500_error(self, raw_response):
         request_id = raw_response.headers["X-Request-Id"]
-        if raw_response.json:
-            message = raw_response.json["data"]
+        if raw_response.json():
+            message = raw_response.json()["data"]
         else:
             message = "There was no error message"
         raise exceptions.KazooApiError("Internal Server Error, "
