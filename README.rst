@@ -1,6 +1,6 @@
 Installing
 ==========
-
+ 
 Install from pip::
 
     pip install kazoo-api
