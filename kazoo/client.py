@@ -1,10 +1,13 @@
 import json
 import requests
 import kazoo.exceptions as exceptions
+import logging
 from kazoo.request_objects import KazooRequest, UsernamePasswordAuthRequest, \
     ApiKeyAuthRequest
 from kazoo.rest_resources import RestResource
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class RestClientMetaClass(type):
 
@@ -217,12 +220,11 @@ class Client(object):
 
     """
     __metaclass__ = RestClientMetaClass
-    BASE_URL = "http://api.2600hz.com:8000/v1"
+    base_url = "http://api.2600hz.com:8000/v1"
 
     _accounts_resource = RestResource("account",
                                       "/accounts/{account_id}",
-                                      exclude_methods=["list",
-                                                       "delete", "create"],
+                                      exclude_methods=[],
                                       extra_views=[
                                           {"name": "get_account_children",
                                            "path": "children",
@@ -230,37 +232,51 @@ class Client(object):
                                           {"name": "get_account_descendants",
                                            "path": "descendants",
                                            "scope": "object"}])
+
     _callflow_resource = RestResource(
         "callflow",
         "/accounts/{account_id}/callflows/{callflow_id}")
+
     _conference_resource = RestResource(
         "conference",
         "/accounts/{account_id}/conferences/{conference_id}")
+
     _device_resource = RestResource(
         "device",
         "/accounts/{account_id}/devices/{device_id}",
         extra_views=[{"name": "get_all_devices_status", "path": "status"}])
+
     _directories_resource = RestResource(
         "directory",
         "/accounts/{account_id}/directories/{directory_id}",
         plural_name="directories")
+
     _global_resources = RestResource(
         "global_resource",
         "/accounts/{account_id}/global_resources/{resource_id}")
+
+    _groups_resource = RestResource("group",
+                                   "/accounts/{account_id}/groups/{group_id}")
+
     _limits_resource = RestResource("limit",
                                     "/accounts/{account_id}/limits/{ignored}",
                                     methods=["list"])
+
     _local_resources_resource = RestResource(
         "local_resource",
         "/accounts/{account_id}/local_resources/{resource_id}")
+
+
     _media_resource = RestResource("media",
                                    "/accounts/{account_id}/media/{media_id}",
                                    plural_name="media",
                                    method_names={
                                        "list": "get_all_media"
                                    })
+
     _menus_resource = RestResource("menu",
                                    "/accounts/{account_id}/menus/{menu_id}")
+
     _phone_number_resource = RestResource(
         "phone_number",
         "/accounts/{account_id}/phone_numbers/{phone_number}",
@@ -278,8 +294,13 @@ class Client(object):
              "path": "port",
              "scope": "object",
              "method": "put"}])
+
     _queues_resource = RestResource("queue",
                                     "/accounts/{account_id}/queues/{queue_id}")
+
+    _rates_resource = RestResource("rates",
+                                    "/accounts/{account_id}/rates/{rate_id}")
+
     _server_resource = RestResource(
         "server",
         "/accounts/{account_id}/servers/{server_id}",
@@ -294,28 +315,39 @@ class Client(object):
              "method": "put"},
             {"name": "get_server_log", "path": "log"}
         ])
+
     _temporal_rules_resource = RestResource(
         "temporal_rule",
         "/accounts/{account_id}/temporal_rules/{rule_id}")
+
     _users_resource = RestResource(
         "user",
         "/accounts/{account_id}/users/{user_id}",
         extra_views=[{"name": "get_hotdesk", "path": "hotdesks"}])
+
     _vmbox_resource = RestResource(
         "voicemail_box",
         "/accounts/{account_id}/vmboxes/{vmbox_id}",
         plural_name="voicemail_boxes")
+
     _phone_number_docs_resource = RestResource(
         "phone_number_doc",
         "/accounts/{account_id}/phone_numbers/{phone_number}/docs/{filename}",
         methods=["delete"],
     )
 
+    _webhook_resource = RestResource(
+        "webhook",
+        "/accounts/{account_id}/webhooks/{webhook_id}")
+
     def __init__(self, api_key=None, password=None, account_name=None,
-                 username=None):
+                 username=None, base_url=None):
         if not api_key and not password:
             raise RuntimeError("You must pass either an api_key or an "
                                "account name/password pair")
+
+        if base_url is not None:
+            self.base_url = base_url
 
         if password or account_name or username:
             if not (password and account_name and username):
@@ -338,15 +370,26 @@ class Client(object):
         which will be automatically used for all further requests
         """
         if not self._authenticated:
-            self.auth_data = self.auth_request.execute(self.BASE_URL)
+            self.auth_data = self.auth_request.execute(self.base_url)
             self.auth_token = self.auth_data["auth_token"]
             self._authenticated = True
         return self.auth_token
 
     def _execute_request(self, request, **kwargs):
+        from exceptions import KazooApiAuthenticationError
+
         if request.auth_required:
             kwargs["token"] = self.auth_token
-        return request.execute(self.BASE_URL, **kwargs)
+
+        try:
+            return request.execute(self.base_url, **kwargs)
+        except KazooApiAuthenticationError as e:
+            logger.error('Kazoo authentication failed. Attempting to re-authentication and retry: {}'.format(e))
+            self._authenticated = False
+            self.auth_token = None
+            self.authenticate()
+            kwargs["token"] = self.auth_token
+            return request.execute(self.base_url, **kwargs)
 
     def search_phone_numbers(self, prefix, quantity=10):
         request = KazooRequest("/phone_numbers", get_params={
@@ -361,8 +404,35 @@ class Client(object):
         return self._execute_request(request,
                                      account_id=acct_id, phone_number=phone_number)
 
+    def get_phone_number(self, acct_id, phone_number):
+        request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
+                               method="get")
+        return self._execute_request(request,
+                                     account_id=acct_id, phone_number=phone_number)
+
+    def upload_media_file(self, acct_id, media_id, filename, file_obj):
+        """Uploads a media file like object as part of a media document"""
+        request = KazooRequest("/accounts/{account_id}/media/{media_id}/raw",
+                               method="post")
+        return self._execute_request(request, 
+                                     account_id=acct_id, 
+                                     media_id=media_id,
+                                     rawfiles=({filename: file_obj}))
+
     def upload_phone_number_file(self, acct_id, phone_number, filename, file_obj):
         """Uploads a file like object as part of a phone numbers documents"""
         request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
                                method="post")
         return self._execute_request(request, files={filename: file_obj})
+
+    def list_devices_by_owner(self, accountId, ownerId):
+        request = KazooRequest("/accounts/{account_id}/devices", get_params={"filter_owner_id": ownerId})
+        request.auth_required = True
+
+        return self._execute_request(request, account_id=accountId)
+
+    def list_child_accounts(self, parentAccountId):
+        request = KazooRequest("/accounts/{account_id}/children")
+        request.auth_required = True
+
+        return self._execute_request(request, account_id=parentAccountId)
