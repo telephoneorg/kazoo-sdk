@@ -7,12 +7,12 @@ import re
 import requests
 import urllib
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.poolmanager import PoolManager
+from urllib3.poolmanager import PoolManager
 import ssl
 
-
+logging.basicConfig()
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class HttpsAdapterHack(HTTPAdapter):
     def init_poolmanager(self, connections, maxsize, block=False):
