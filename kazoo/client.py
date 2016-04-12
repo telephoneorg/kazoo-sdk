@@ -163,6 +163,14 @@ class Client(object):
         >>>client = kazoo.Client(username="myusername", password="mypassword", account_name="my_account_name")
         >>>client.authenticate()
 
+    The default api url is: 'http://api.2600hz.com:8000/v1'.  You can override this
+    by supplying an extra argument, 'base_url' to kazoo.Client().
+
+    Example of overriding 'base_url'::
+
+        >>>client = kazoo.Client(base_url='http://api.example.com:8000/v1',
+                                 api_key="sdfasdfas")
+
     API calls which require data take it in the form of a required argument
     called 'data' which is the last argument to the method. For example ::
 
