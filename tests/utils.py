@@ -1,13 +1,15 @@
 import json
-import os.path as path
+import os.path
 
 
 def load_fixture(filename):
-    full_path = path.join(path.abspath(path.dirname(__file__)),
-                          "fixtures", filename)
-    return open(full_path).read()
+    full_path = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)),
+        "fixtures", filename
+    )
+    with open(full_path) as fd:
+        return fd.read()
 
 
-def load_fixture_as_dict(json_filename):
-    raw = load_fixture(json_filename)
-    return json.loads(raw)
+def load_fixture_as_dict(filename):
+    return json.loads(load_fixture(filename))

@@ -1,8 +1,10 @@
 import unittest
+import inspect
+
 import six
+
 from kazoo.client import RestClientMetaClass
 from kazoo.rest_resources import RestResource
-import inspect
 
 
 class TestClass(six.with_metaclass(RestClientMetaClass)):
@@ -37,7 +39,6 @@ class TestClass(six.with_metaclass(RestClientMetaClass)):
 
 
 class MetaclassMethodCreationTestCase(unittest.TestCase):
-
     def setUp(self):
         self.test_resource = TestClass()
 
@@ -57,7 +58,7 @@ class MetaclassMethodCreationTestCase(unittest.TestCase):
         self._assert_resource_id_arguments("delete_some_resource")
 
     def test_create_resource_has_no_object_id(self):
-        args, _, varkw, _ = inspect.getargspec(
+        args, _, _, _ = inspect.getargspec(
             self.test_resource.create_some_resource)
         self.assertEqual(args, ["self", "resource_one_id", "data"])
 
@@ -94,7 +95,6 @@ class MetaclassMethodCreationTestCase(unittest.TestCase):
 
 
 class GeneratedMethodNamesTestCase(unittest.TestCase):
-
     def setUp(self):
         self.test_resource = TestClass()
 

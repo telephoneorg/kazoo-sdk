@@ -1,14 +1,19 @@
-from .request_objects import KazooRequest
 import re
 
-method_types = ["detail", "list", "update", "create", "delete"]
+from .request_objects import KazooRequest
+
+
+METHOD_TYPES = ("detail", "list", "update", "create", "delete")
 
 
 class RestResource(object):
+    def __init__(self, name, path, plural_name=None, extra_views=None,
+                 methods=METHOD_TYPES, exclude_methods=None,
+                 method_names=None):
+        extra_views = extra_views or []
+        exclude_methods = exclude_methods or []
+        method_names = method_names or {}
 
-    def __init__(self, name, path, plural_name=None, extra_views=[],
-                 methods=method_types, exclude_methods=[],
-                 method_names={}):
         self._param_regex = re.compile("{([a-zA-Z0-9_]+)}")
         self.name = name
         self._plural_name = plural_name
@@ -33,11 +38,12 @@ class RestResource(object):
     def _initialize_methods(self, methods, exclude_methods):
         self.methods = list(set(methods) - set(exclude_methods))
 
-    def _get_resource_path(self, path):
+    @staticmethod
+    def _get_resource_path(path):
         return path[:path.rfind("{") - 1]
 
     def _check_at_least_one_argument(self, path):
-        if len(self._get_params(path)) == 0:
+        if not self._get_params(path):
             raise ValueError("Rest resources need at least one argument")
 
     def _get_required_arguments(self, path):

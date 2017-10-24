@@ -1,18 +1,17 @@
-import json
-import requests
+import logging
+
 import six
 
-from . import exceptions
-import logging
-from .request_objects import KazooRequest, UsernamePasswordAuthRequest, \
-    ApiKeyAuthRequest
+from .exceptions import KazooApiAuthenticationError
+from .request_objects import (
+    KazooRequest, UsernamePasswordAuthRequest, ApiKeyAuthRequest)
 from .rest_resources import RestResource
 
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+
 
 class RestClientMetaClass(type):
-
     def __init__(cls, name, bases, dct):
         super(RestClientMetaClass, cls).__init__(name, bases, dct)
         for key, value in dct.items():
@@ -58,8 +57,8 @@ class RestClientMetaClass(type):
         if "detail" not in rest_resource.methods:
             return
         func_name = rest_resource.method_names["object"]
-        required_args = rest_resource.required_args + \
-            [rest_resource.object_arg]
+        required_args = (rest_resource.required_args +
+                         [rest_resource.object_arg])
         func = cls._generate_resource_func(
             func_name,
             resource_field_name,
@@ -71,8 +70,8 @@ class RestClientMetaClass(type):
         if "delete" not in rest_resource.methods:
             return
         func_name = rest_resource.method_names["delete"]
-        required_args = rest_resource.required_args + \
-            [rest_resource.object_arg]
+        required_args = (rest_resource.required_args +
+                         [rest_resource.object_arg])
         func = cls._generate_resource_func(
             func_name,
             resource_field_name,
@@ -84,8 +83,8 @@ class RestClientMetaClass(type):
         if "update" not in rest_resource.methods:
             return
         func_name = rest_resource.method_names["update"]
-        required_args = rest_resource.required_args + \
-            [rest_resource.object_arg]
+        required_args = (rest_resource.required_args +
+                         [rest_resource.object_arg])
         func = cls._generate_resource_func(
             func_name,
             resource_field_name,
@@ -100,10 +99,10 @@ class RestClientMetaClass(type):
         if extra_view_desc["scope"] == "aggregate":
             required_args = rest_resource.required_args
         else:
-            required_args = rest_resource.required_args + \
-                [rest_resource.object_arg]
-        if extra_view_desc["method"] in ["put", "post"]:
-            requires_data=True
+            required_args = (rest_resource.required_args +
+                             [rest_resource.object_arg])
+        if extra_view_desc["method"] in ("put", "post"):
+            requires_data = True
         else:
             requires_data = False
         func = cls._generate_resource_func(
@@ -114,7 +113,8 @@ class RestClientMetaClass(type):
             requires_data=requires_data)
         setattr(cls, func_name, func)
 
-    def _generate_resource_func(cls, func_name, resource_field_name,
+    @staticmethod
+    def _generate_resource_func(func_name, resource_field_name,
                                 resource_required_args, request_type=None,
                                 extra_view_name=None, requires_data=False):
         # This is quite nasty, the point of it is to generate a function which
@@ -125,7 +125,7 @@ class RestClientMetaClass(type):
         if requires_data:
             required_args.append("data")
         required_args_str = ",".join(required_args)
-        if len(required_args) > 0:
+        if required_args:
             required_args_str += ","
         get_request_args = ",".join(["{0}={0}".format(argname)
                                      for argname in required_args])
@@ -137,11 +137,17 @@ class RestClientMetaClass(type):
             get_request_string = get_req_templ.format(
                 resource_field_name, extra_view_name, get_request_args)
         if requires_data:
-            func_definition = "def {0}(self, {1}): return self._execute_request({2}, data=data)".format(
-                func_name, required_args_str, get_request_string)
+            func_definition = (
+                "def {0}(self, {1}): "
+                "return self._execute_request({2}, data=data)".format(
+                    func_name, required_args_str, get_request_string
+                ))
         else:
-            func_definition = "def {0}(self, {1}): return self._execute_request({2})".format(
-                func_name, required_args_str, get_request_string)
+            func_definition = (
+                "def {0}(self, {1}): "
+                "return self._execute_request({2})".format(
+                    func_name, required_args_str, get_request_string
+                ))
         func = compile(func_definition, __file__, 'exec')
         d = {}
         exec(func, d)
@@ -162,11 +168,12 @@ class Client(six.with_metaclass(RestClientMetaClass)):
 
     You can also initialize with a username and password combination: ::
 
-        >>>client = kazoo.Client(username="myusername", password="mypassword", account_name="my_account_name")
+        >>>client = kazoo.Client(username="myusername", password="mypassword",
+                                 account_name="my_account_name")
         >>>client.authenticate()
 
-    The default api url is: 'http://api.2600hz.com:8000/v1'.  You can override this
-    by supplying an extra argument, 'base_url' to kazoo.Client().
+    The default api url is: 'http://api.2600hz.com:8000/v1'.  You can override
+    this by supplying an extra argument, 'base_url' to kazoo.Client().
 
     Example of overriding 'base_url'::
 
@@ -176,12 +183,14 @@ class Client(six.with_metaclass(RestClientMetaClass)):
     API calls which require data take it in the form of a required argument
     called 'data' which is the last argument to the method. For example ::
 
-        >>>client.update_account(acct_id, {"name": "somename", "realm":"superfunrealm"})
+        >>>client.update_account(acct_id, {"name": "somename",
+                                           "realm":"superfunrealm"})
 
-    Dictionaries and lists will automatically be converted to their appropriate
-    representation so you can do things like: ::
+    Dictionaries and lists will automatically be converted to their
+    appropriate representation so you can do things like: ::
 
-        >>>client.update_callflow(acct_id, callflow_id, {"flow":{"module":"somemodule"}})
+        >>>client.update_callflow(acct_id, callflow_id,
+                                  {"flow": {"module": "somemodule"}})
 
     Invalid data will result in an exception explaining the problem.
 
@@ -211,21 +220,30 @@ class Client(six.with_metaclass(RestClientMetaClass)):
     correspondence is as follows. ::
 
         GET /accounts/{account_id}/callflows -> client.get_callflows(acct_id)
-        GET /accounts/{account_id}/callflows/{callflow_id} -> client.get_callflow(acct_id, callflow_id)
-        PUT /accounts/{account_id}/callflows/ -> client.create_callflow(acct_id, data)
-        POST /account/{account_id}/callflows/{callflow_id} -> client.update_callflow(acct_id, data)
-        DELETE /account/{account_id}/callflows/{callflow_id} -> client.delete_callflow(acct_id, callflow_id)
+        GET /accounts/{account_id}/callflows/{callflow_id} ->
+            client.get_callflow(acct_id, callflow_id)
+        PUT /accounts/{account_id}/callflows/ ->
+            client.create_callflow(acct_id, data)
+        POST /account/{account_id}/callflows/{callflow_id} ->
+            client.update_callflow(acct_id, data)
+        DELETE /account/{account_id}/callflows/{callflow_id} ->
+            client.delete_callflow(acct_id, callflow_id)
 
     Some resources do not have all methods available, in which case they are
     not present on the client.
 
-    There are also some resources which don't quite fit this paradigm, they are: ::
+    There are also some resources which don't quite fit this paradigm,
+    they are: ::
 
         GET /accounts/{account_id}/media -> client.get_all_media(acct_id)
-        GET /accounts/{account_id}/children -> client.get_account_children(acct_id)
-        GET /accounts/{account_id}/descendants -> client.get_account_descendants(acct_id)
-        GET /accounts/{account_id}/devices/status -> client.get_all_devices_status(acct_id)
-        GET /accounts/{account_id}/servers/{server_id}/deployment -> client.get_deployment(acct_id, server_id)
+        GET /accounts/{account_id}/children ->
+            client.get_account_children(acct_id)
+        GET /accounts/{account_id}/descendants ->
+            client.get_account_descendants(acct_id)
+        GET /accounts/{account_id}/devices/status ->
+            client.get_all_devices_status(acct_id)
+        GET /accounts/{account_id}/servers/{server_id}/deployment ->
+            client.get_deployment(acct_id, server_id)
         GET /accounts/{account_id}/users/hotdesk -> client.get_hotdesk(acct_id)
 
     """
@@ -265,7 +283,7 @@ class Client(six.with_metaclass(RestClientMetaClass)):
         "/accounts/{account_id}/global_resources/{resource_id}")
 
     _groups_resource = RestResource("group",
-                                   "/accounts/{account_id}/groups/{group_id}")
+                                    "/accounts/{account_id}/groups/{group_id}")
 
     _limits_resource = RestResource("limit",
                                     "/accounts/{account_id}/limits/{ignored}",
@@ -274,7 +292,6 @@ class Client(six.with_metaclass(RestClientMetaClass)):
     _local_resources_resource = RestResource(
         "local_resource",
         "/accounts/{account_id}/local_resources/{resource_id}")
-
 
     _media_resource = RestResource("media",
                                    "/accounts/{account_id}/media/{media_id}",
@@ -291,7 +308,7 @@ class Client(six.with_metaclass(RestClientMetaClass)):
         "/accounts/{account_id}/phone_numbers/{phone_number}",
         methods=["list", "update", "delete"],
         extra_views=[
-            {"name":"activate_phone_number",
+            {"name": "activate_phone_number",
              "path": "activate",
              "scope": "object",
              "method": "put"},
@@ -308,7 +325,7 @@ class Client(six.with_metaclass(RestClientMetaClass)):
                                     "/accounts/{account_id}/queues/{queue_id}")
 
     _rates_resource = RestResource("rates",
-                                    "/accounts/{account_id}/rates/{rate_id}")
+                                   "/accounts/{account_id}/rates/{rate_id}")
 
     _server_resource = RestResource(
         "server",
@@ -385,15 +402,14 @@ class Client(six.with_metaclass(RestClientMetaClass)):
         return self.auth_token
 
     def _execute_request(self, request, **kwargs):
-        from .exceptions import KazooApiAuthenticationError
-
         if request.auth_required:
             kwargs["token"] = self.auth_token
 
         try:
             return request.execute(self.base_url, **kwargs)
         except KazooApiAuthenticationError as e:
-            logger.error('Kazoo authentication failed. Attempting to re-authentication and retry: {}'.format(e))
+            logger.error('Kazoo authentication failed. Attempting to '
+                         're-authentication and retry: %s', e)
             self._authenticated = False
             self.auth_token = None
             self.authenticate()
@@ -407,41 +423,42 @@ class Client(six.with_metaclass(RestClientMetaClass)):
         })
         return self._execute_request(request)
 
-    def create_phone_number(self, acct_id, phone_number):
-        request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
+    def create_phone_number(self, acct_id, phone_num):
+        request = KazooRequest("/accounts/{acct_id}/phone_numbers/{phone_num}",
                                method="put")
         return self._execute_request(request,
-                                     account_id=acct_id, phone_number=phone_number)
+                                     acct_id=acct_id, phone_num=phone_num)
 
-    def get_phone_number(self, acct_id, phone_number):
-        request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
+    def get_phone_number(self, acct_id, phone_num):
+        request = KazooRequest("/accounts/{acct_id}/phone_numbers/{phone_num}",
                                method="get")
         return self._execute_request(request,
-                                     account_id=acct_id, phone_number=phone_number)
+                                     acct_id=acct_id, phone_num=phone_num)
 
     def upload_media_file(self, acct_id, media_id, filename, file_obj):
         """Uploads a media file like object as part of a media document"""
-        request = KazooRequest("/accounts/{account_id}/media/{media_id}/raw",
+        request = KazooRequest("/accounts/{acct_id}/media/{media_id}/raw",
                                method="post")
         return self._execute_request(request,
-                                     account_id=acct_id,
+                                     acct_id=acct_id,
                                      media_id=media_id,
                                      rawfiles=({filename: file_obj}))
 
-    def upload_phone_number_file(self, acct_id, phone_number, filename, file_obj):
+    def upload_phone_number_file(self, acct_id, phone_num, filename, file_obj):
         """Uploads a file like object as part of a phone numbers documents"""
-        request = KazooRequest("/accounts/{account_id}/phone_numbers/{phone_number}",
+        request = KazooRequest("/accounts/{acct_id}/phone_numbers/{phone_num}",
                                method="post")
         return self._execute_request(request, files={filename: file_obj})
 
-    def list_devices_by_owner(self, accountId, ownerId):
-        request = KazooRequest("/accounts/{account_id}/devices", get_params={"filter_owner_id": ownerId})
+    def list_devices_by_owner(self, acct_id, owner_id):
+        request = KazooRequest("/accounts/{acct_id}/devices",
+                               get_params={"filter_owner_id": owner_id})
         request.auth_required = True
 
-        return self._execute_request(request, account_id=accountId)
+        return self._execute_request(request, acct_id=acct_id)
 
-    def list_child_accounts(self, parentAccountId):
-        request = KazooRequest("/accounts/{account_id}/children")
+    def list_child_accounts(self, parent_acct_id):
+        request = KazooRequest("/accounts/{acct_id}/children")
         request.auth_required = True
 
-        return self._execute_request(request, account_id=parentAccountId)
+        return self._execute_request(request, account_id=parent_acct_id)

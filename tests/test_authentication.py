@@ -1,10 +1,11 @@
-import mock
 import unittest
+
+import mock
+
 from kazoo import Client
 
 
 class AuthenticationTestCase(unittest.TestCase):
-
     def test_authentication_sets_auth_token(self):
         with mock.patch('kazoo.client.ApiKeyAuthRequest') as mock_req_class:
             mock_req = mock.Mock()

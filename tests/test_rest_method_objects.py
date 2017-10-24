@@ -1,9 +1,9 @@
-from kazoo.rest_resources import RestResource
 import unittest
+
+from kazoo.rest_resources import RestResource
 
 
 class RestResourceTestCase(unittest.TestCase):
-
     def setUp(self):
         self.path = "/{argument1}/subresource/{argument2}"
         self.resource = RestResource(
@@ -54,7 +54,6 @@ class RestResourceTestCase(unittest.TestCase):
 
 
 class ExtraViewsResourceTestCase(unittest.TestCase):
-
     def setUp(self):
         self.resource = RestResource(
             "somresource",
@@ -110,7 +109,6 @@ class ExtraViewsResourceTestCase(unittest.TestCase):
 
 
 class PluralNameResourceTestCase(unittest.TestCase):
-
     def test_resource_plural_name(self):
         resource = RestResource("subresource", "/{oneid}/someotherplace")
         self.assertEqual(resource.plural_name, "subresources")
@@ -122,7 +120,6 @@ class PluralNameResourceTestCase(unittest.TestCase):
 
 
 class RestResourceMethodNameTestCase(unittest.TestCase):
-
     def test_resource_names_for_default_method_names(self):
         resource = RestResource("someresource", "/someplace/{resource_id}")
         method_names = resource.method_names
@@ -134,11 +131,11 @@ class RestResourceMethodNameTestCase(unittest.TestCase):
         self.assertEqual(expected_names, method_names)
 
     def test_custom_resource_names(self):
-        method_names={"list":"get_books",
-                      "object": "get_book",
-                      "update": "update_book",
-                      "create": "create_book",
-                      "delete": "delete_book"}
+        method_names = {"list": "get_books",
+                        "object": "get_book",
+                        "update": "update_book",
+                        "create": "create_book",
+                        "delete": "delete_book"}
         resource = RestResource("someresource", "/someplace/{resource_id}",
                                 method_names=method_names)
         self.assertEqual(resource.method_names, method_names)
@@ -157,7 +154,6 @@ class RestResourceMethodNameTestCase(unittest.TestCase):
 
 
 class AvailableMethodsResourceTestCase(unittest.TestCase):
-
     def test_excludes_resource(self):
         resource = RestResource("subresource", "/{oneid}/someplace",
                                 exclude_methods=["list", "detail"])
@@ -165,11 +161,11 @@ class AvailableMethodsResourceTestCase(unittest.TestCase):
 
 
 class ResourcePathTestCase(unittest.TestCase):
-
     def test_resource_path_calculated_correctly(self):
         # Catch a bug where the url /accounts/{account_id}/phone_numbers/{phone_number}
         # was parsing incorrectly
-        resource = RestResource("phone_numbers",
-                                "/accounts/{account_id}/phone_numbers/{phone_number}")
+        resource = RestResource(
+            "phone_numbers",
+            "/accounts/{account_id}/phone_numbers/{phone_number}")
         self.assertEqual(resource.path,
                          "/accounts/{account_id}/phone_numbers")

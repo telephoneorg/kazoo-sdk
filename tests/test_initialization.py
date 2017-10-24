@@ -1,11 +1,11 @@
 import unittest
+
 from kazoo import Client
-from kazoo.request_objects import UsernamePasswordAuthRequest, \
-    ApiKeyAuthRequest
+from kazoo.request_objects import (
+    UsernamePasswordAuthRequest, ApiKeyAuthRequest)
 
 
 class ConstructorRequiredArgumentsTestCase(unittest.TestCase):
-
     def assert_invalid_constructor_args(self, **kwargs):
         with self.assertRaises(RuntimeError):
             client = Client(**kwargs)

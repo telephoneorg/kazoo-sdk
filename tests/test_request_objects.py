@@ -1,22 +1,24 @@
 import json
+from collections import OrderedDict
+import unittest
+
+import mock
+
 from kazoo import exceptions
 from kazoo.request_objects import (
     KazooRequest, UsernamePasswordAuthRequest, ApiKeyAuthRequest)
-import mock
-import unittest
-from collections import OrderedDict
+
 from . import utils
 
 
 class RequestTestCase(unittest.TestCase):
-
     def assert_data(self, mock_request, expected_data):
         expected_wrapper = {"data": expected_data}
         mock_request.assert_called_with(mock.ANY, headers=mock.ANY,
                                         data=json.dumps(expected_wrapper))
 
-class RequestObjectParameterTestCase(RequestTestCase):
 
+class RequestObjectParameterTestCase(RequestTestCase):
     def setUp(self):
         self.param_name = "param1"
         self.url = "/testpath/{{{0}}}".format(self.param_name)
@@ -32,8 +34,9 @@ class RequestObjectParameterTestCase(RequestTestCase):
     def test_url_contains_param(self):
         req_obj = self.create_req_obj(self.url)
         with mock.patch('requests.get') as mock_get:
-            mock_get.return_value.json.return_value = {"some_key": "some_val",
-                                          "status": "success"}
+            mock_get.return_value.json.return_value = {
+                "some_key": "some_val", "status": "success"
+            }
             req_obj.execute("http://testserver", param1="somevalue")
             mock_get.assert_called_with("http://testserver/testpath/somevalue",
                                         headers=mock.ANY)
@@ -60,12 +63,6 @@ class RequestObjectParameterTestCase(RequestTestCase):
             req_obj.execute("https://testserver", param1="value",
                             method="baha")
 
-    # def test_auth_required_throws_if_no_token_passed(self):
-    #     req_obj = self.create_req_obj(self.url, auth_required=True)
-    #     with self.assertRaises(exceptions.AuthenticationRequiredError):
-    #         with mock.patch('requests.get') as mock_get:
-    #             req_obj.execute("https://testserver", param1="value")
-
     def test_auth_required_does_not_throw_if_token_present(self):
         req_obj = self.create_req_obj(self.url, auth_required=True)
         with mock.patch('requests.get') as mock_get:
@@ -74,7 +71,6 @@ class RequestObjectParameterTestCase(RequestTestCase):
 
 
 class RequestObjectDataParamsTestCase(RequestTestCase):
-
     def setUp(self):
         self.path = "/testpath/{param3}"
 
@@ -105,7 +101,6 @@ class RequestObjectDataParamsTestCase(RequestTestCase):
 
 
 class RequestObjectErrorHandling(RequestTestCase):
-
     def setUp(self):
         self.error_response = utils.load_fixture_as_dict(
             "bad_auth_response.json")
@@ -116,10 +111,11 @@ class RequestObjectErrorHandling(RequestTestCase):
             mock_response = mock.Mock()
             mock_response.json.return_value = self.error_response
             mock_get.return_value = mock_response
-            with self.assertRaises(exceptions.KazooApiAuthenticationError) as cm:
+            with self.assertRaises(
+                exceptions.KazooApiAuthenticationError) as cm:
                 req_obj.execute("http://testserver")
                 expected_errors = "the error was {0}".format(
-                                   self.error_response["message"])
+                    self.error_response["message"])
                 self.assertTrue(expected_errors in cm.exception)
 
     def test_internal_server_error_unparseable(self):
@@ -145,7 +141,8 @@ class RequestObjectErrorHandling(RequestTestCase):
             mock_get.return_value = mock_response
             with self.assertRaises(exceptions.KazooApiError) as cm:
                 req_obj.execute("http://testserver")
-                self.assertTrue("Unable to continue due to billing" in cm.exception)
+                self.assertTrue(
+                    "Unable to continue due to billing" in cm.exception)
 
 
     def test_invalid_data_displays_invalid_field_data(self):
@@ -162,14 +159,16 @@ class RequestObjectErrorHandling(RequestTestCase):
 
 
 class GetParametersTestCase(RequestTestCase):
-
     def test_get_parameters_added_to_url(self):
-        request = KazooRequest("/somepath", auth_required=False,
-                               get_params=OrderedDict({"two":2,"one":1}))
+        request = KazooRequest(
+            "/somepath", auth_required=False,
+            get_params=OrderedDict([('two', 2), ('one', 1)]))
         with mock.patch('requests.get') as mock_get:
             mock_response = mock.Mock()
             mock_response.status_code = 200
-            mock_response.json.return_value = {"result":"fake", "status":"success"}
+            mock_response.json.return_value = {
+                "result": "fake", "status": "success"
+            }
             mock_get.return_value = mock_response
             request.execute("http://testserver.com")
             mock_get.assert_called_with(
@@ -178,9 +177,7 @@ class GetParametersTestCase(RequestTestCase):
             )
 
 
-
 class UsernamePasswordAuthRequestTestCase(RequestTestCase):
-
     def setUp(self):
         self.username = "username"
         self.password = "password"
@@ -207,7 +204,6 @@ class UsernamePasswordAuthRequestTestCase(RequestTestCase):
 
 
 class ApiKeyAuthRequestTestCase(RequestTestCase):
-
     def setUp(self):
         self.api_key = "dsfjhasdfknasdfhas"
         self.req_obj = ApiKeyAuthRequest(self.api_key)
