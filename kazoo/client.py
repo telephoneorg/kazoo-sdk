@@ -1,10 +1,12 @@
 import json
 import requests
-import kazoo.exceptions as exceptions
+import six
+
+from . import exceptions
 import logging
-from kazoo.request_objects import KazooRequest, UsernamePasswordAuthRequest, \
+from .request_objects import KazooRequest, UsernamePasswordAuthRequest, \
     ApiKeyAuthRequest
-from kazoo.rest_resources import RestResource
+from .rest_resources import RestResource
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -117,7 +119,7 @@ class RestClientMetaClass(type):
                                 extra_view_name=None, requires_data=False):
         # This is quite nasty, the point of it is to generate a function which
         # has named required arguments so that it is nicely self documenting.
-        # If you're having trouble following it stick a print statement in
+        # If yo're having trouble following it stick a print statement in
         # around the func_definition variable and then import in a shell.
         required_args = list(resource_required_args)
         if requires_data:
@@ -142,11 +144,11 @@ class RestClientMetaClass(type):
                 func_name, required_args_str, get_request_string)
         func = compile(func_definition, __file__, 'exec')
         d = {}
-        exec func in d
+        exec(func, d)
         return d[func_name]
 
 
-class Client(object):
+class Client(six.with_metaclass(RestClientMetaClass)):
     """The interface to the Kazoo API
 
     This class should be initialized either with a username, password and
@@ -187,22 +189,22 @@ class Client(object):
     the returned JSON object, for example: ::
 
         >>>client.get_account(acct_id)
-        {u'auth_token': u'abc437d000007d0454cc984f6f09daf3',
-         u'data': {u'billing_mode': u'normal',
-          u'caller_id': {},
-          u'caller_id_options': {},
-          u'id': u'c4f64412ad0057222c0009a3e7da011',
-          u'media': {u'bypass_media': u'auto'},
-          u'music_on_hold': {},
-          u'name': u'test3',
-          u'notifications': {},
-          u'realm': u'4c8050.sip.2600hz.com',
-          u'superduper_admin': False,
-          u'timezone': u'America/Los_Angeles',
-          u'wnm_allow_additions': False},
-         u'request_id': u'ea6441422fb85000ad21db4f1e2326c1',
-         u'revision': u'3-c16dd0a629fe1da0000e1e7b3e5fb35a',
-         u'status': u'success'}
+        {'auth_token': 'abc437d000007d0454cc984f6f09daf3',
+         'data': {'billing_mode': 'normal',
+          'caller_id': {},
+          'caller_id_options': {},
+          'id': 'c4f64412ad0057222c0009a3e7da011',
+          'media': {'bypass_media': 'auto'},
+          'music_on_hold': {},
+          'name': 'test3',
+          'notifications': {},
+          'realm': '4c8050.sip.2600hz.com',
+          'superduper_admin': False,
+          'timezone': 'America/Los_Angeles',
+          'wnm_allow_additions': False},
+         'request_id': 'ea6441422fb85000ad21db4f1e2326c1',
+         'revision': '3-c16dd0a629fe1da0000e1e7b3e5fb35a',
+         'status': 'success'}
 
     For each resource exposed by the kazoo api there are corresponding methods
     on the client. For example, for the 'callflows' resource the
@@ -227,7 +229,6 @@ class Client(object):
         GET /accounts/{account_id}/users/hotdesk -> client.get_hotdesk(acct_id)
 
     """
-    __metaclass__ = RestClientMetaClass
     base_url = "http://api.2600hz.com:8000/v1"
 
     _accounts_resource = RestResource("account",
@@ -384,7 +385,7 @@ class Client(object):
         return self.auth_token
 
     def _execute_request(self, request, **kwargs):
-        from exceptions import KazooApiAuthenticationError
+        from .exceptions import KazooApiAuthenticationError
 
         if request.auth_required:
             kwargs["token"] = self.auth_token
@@ -422,8 +423,8 @@ class Client(object):
         """Uploads a media file like object as part of a media document"""
         request = KazooRequest("/accounts/{account_id}/media/{media_id}/raw",
                                method="post")
-        return self._execute_request(request, 
-                                     account_id=acct_id, 
+        return self._execute_request(request,
+                                     account_id=acct_id,
                                      media_id=media_id,
                                      rawfiles=({filename: file_obj}))
 

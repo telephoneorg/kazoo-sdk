@@ -1,6 +1,6 @@
 import unittest
 from kazoo import Client
-from kazoo.request_objects import UsernamePasswordAuthRequest,\
+from kazoo.request_objects import UsernamePasswordAuthRequest, \
     ApiKeyAuthRequest
 
 

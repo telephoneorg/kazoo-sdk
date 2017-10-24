@@ -161,7 +161,7 @@ class AvailableMethodsResourceTestCase(unittest.TestCase):
     def test_excludes_resource(self):
         resource = RestResource("subresource", "/{oneid}/someplace",
                                 exclude_methods=["list", "detail"])
-        self.assertEqual(resource.methods, ["create", "update", "delete"])
+        self.assertEqual(sorted(resource.methods), sorted(["create", "update", "delete"]))
 
 
 class ResourcePathTestCase(unittest.TestCase):

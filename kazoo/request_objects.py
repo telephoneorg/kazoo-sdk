@@ -1,6 +1,6 @@
 import base64
 import json
-from kazoo import exceptions
+from . import exceptions
 import hashlib
 import logging
 import re
@@ -9,6 +9,7 @@ import urllib
 from requests.adapters import HTTPAdapter
 from urllib3.poolmanager import PoolManager
 import ssl
+from six.moves.urllib.parse import urlencode
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class KazooRequest(object):
     def _get_url(self, params, base_url):
         url = base_url + self._get_url_with_variables_replaced(params)
         if self.get_params:
-            return url + "?" + urllib.urlencode(self.get_params)
+            return url + "?" + urlencode(self.get_params)
         return url
 
     def _get_url_with_variables_replaced(self, params):
@@ -141,7 +142,7 @@ class UsernamePasswordAuthRequest(KazooRequest):
 
     def _get_hashed_credentials(self):
         m = hashlib.md5()
-        m.update("{0}:{1}".format(self.username, self.password))
+        m.update("{0}:{1}".format(self.username, self.password).encode())
         return m.hexdigest()
 
 

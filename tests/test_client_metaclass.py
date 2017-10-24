@@ -1,11 +1,11 @@
 import unittest
+import six
 from kazoo.client import RestClientMetaClass
 from kazoo.rest_resources import RestResource
 import inspect
 
 
-class TestClass(object):
-    __metaclass__ = RestClientMetaClass
+class TestClass(six.with_metaclass(RestClientMetaClass)):
     some_resource = RestResource(
         "some_resource",
         "/{resource_one_id}/subresources/{resource_two_id}")

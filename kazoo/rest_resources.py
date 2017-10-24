@@ -1,4 +1,4 @@
-from kazoo.request_objects import KazooRequest
+from .request_objects import KazooRequest
 import re
 
 method_types = ["detail", "list", "update", "create", "delete"]
@@ -60,7 +60,7 @@ class RestResource(object):
     def _initialize_extra_view_descriptions(self, view_descs):
         self.extra_views = []
         for view_desc in view_descs:
-            if hasattr(view_desc, "has_key"):
+            if isinstance(view_desc, dict):
                 result = view_desc
             else:
                 result = {"name": "get_" + view_desc, "path": view_desc}

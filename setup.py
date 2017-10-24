@@ -1,19 +1,42 @@
-import setuptools
-from distutils.core import setup
+import re
+from setuptools import setup, find_packages
 
-#Nasty hack to get version without importing currently uninstalled module
-import os.path as path
-version_line = open(path.join(path.dirname(__file__), "kazoo", "__init__.py")).read().split("\n")[2]
-version = version_line.split("\"")[1]
+
+with open('kazoo/__init__.py', 'rt') as fd:
+    version = re.search(r'^VERSION\s*=\s*[\'"]([^\'"]*)[\'"]',
+                        fd.read(), re.MULTILINE).group(1)
+
+with open('README.rst') as fd:
+    long_description = fd.read()
 
 setup(
-    name="kazoo-api",
+    name="kazoo-sdk",
     version=version,
     description="Wrapper for the Kazoo API",
-    author="Alex Good, Updated by Brock Haywood",
+    long_description=long_description,
+    author="Alex Good, Updated by Brock Haywood, Joe Black",
+    author_email='me@joeblack.nyc',
     url="http://2600hz.com/platform.html",
-    packages = ["kazoo"],
-    install_requires=["requests >=2.2.1"],
+    packages=find_packages(),
+    install_requires=["requests>=2.2.1", "six"],
+    test_requires=["mock", "tox"],
     license="MIT License",
     readme='README.rst',
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Environment :: Other Environment',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Telecommunications Industry',
+        'Intended Audience :: System Administrators',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Topic :: Communications :: Telephony',
+        'Topic :: System :: Systems Administration',
+        'Topic :: Utilities'
+    ]
 )
