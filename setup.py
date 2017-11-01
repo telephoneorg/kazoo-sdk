@@ -14,9 +14,11 @@ setup(
     version=version,
     description="Wrapper for the Kazoo API",
     long_description=long_description,
-    author="Alex Good, Updated by Brock Haywood, Joe Black",
+    author="Alex Good, Updated by Brock Haywood, Refreshed by Joe Black",
     author_email='me@joeblack.nyc',
-    url="http://2600hz.com/platform.html",
+    url='https://github.com/telephoneorg/kazoo-sdk',
+    download_url=(
+        'https://github.com/telephoneorg/kazoo-sdk/tarball/v%s' % version),
     packages=find_packages(),
     install_requires=["requests>=2.2.1", "six"],
     test_requires=["mock", "tox"],
