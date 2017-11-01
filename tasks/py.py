@@ -3,6 +3,7 @@ from invoke import task
 
 @task
 def develop(ctx):
+    ctx.run("python2 setup.py develop")
     ctx.run("python3 setup.py develop")
 
 
@@ -19,7 +20,7 @@ def upload(ctx):
 
 @task
 def clean(ctx):
-    ctx.run("rm -rf build dist *.egg-info")
+    ctx.run("rm -rf build dist *.egg-info **/.pyc **/__pycache__")
 
 
 @task(build, upload, clean)

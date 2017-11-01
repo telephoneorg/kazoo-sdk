@@ -12,7 +12,9 @@ Authentication
 Either authenticate using a username/password pair::
 
     >>>import kazoo
-    >>>client = kazoo.Client(username="myusername", password="mypassword", account_name="my account name")
+    >>>client = kazoo.Client(username='myusername', password='mypassword',
+                             account_name='my account name',
+                             base_url='http://api.example.com:8000/v1')
     >>>client.authenticate()
 
 Or using an api key::

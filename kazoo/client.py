@@ -1,6 +1,8 @@
 import logging
+# import json
 
 import six
+import requests
 
 from .exceptions import KazooApiAuthenticationError
 from .request_objects import (
@@ -9,6 +11,10 @@ from .rest_resources import RestResource
 
 
 logger = logging.getLogger(__name__)
+
+
+def parse_list(blob):
+    return blob[1:-1].split(',')
 
 
 class RestClientMetaClass(type):
@@ -117,6 +123,7 @@ class RestClientMetaClass(type):
     def _generate_resource_func(func_name, resource_field_name,
                                 resource_required_args, request_type=None,
                                 extra_view_name=None, requires_data=False):
+        # import pdb; pdb.set_trace()
         # This is quite nasty, the point of it is to generate a function which
         # has named required arguments so that it is nicely self documenting.
         # If yo're having trouble following it stick a print statement in
@@ -148,6 +155,7 @@ class RestClientMetaClass(type):
                 "return self._execute_request({2})".format(
                     func_name, required_args_str, get_request_string
                 ))
+
         func = compile(func_definition, __file__, 'exec')
         d = {}
         exec(func, d)
@@ -278,9 +286,9 @@ class Client(six.with_metaclass(RestClientMetaClass)):
         "/accounts/{account_id}/directories/{directory_id}",
         plural_name="directories")
 
-    _global_resources = RestResource(
-        "global_resource",
-        "/accounts/{account_id}/global_resources/{resource_id}")
+    # _global_resources = RestResource(
+    #     "global_resource",
+    #     "/accounts/{account_id}/global_resources/{resource_id}")
 
     _groups_resource = RestResource("group",
                                     "/accounts/{account_id}/groups/{group_id}")
@@ -289,9 +297,9 @@ class Client(six.with_metaclass(RestClientMetaClass)):
                                     "/accounts/{account_id}/limits/{ignored}",
                                     methods=["list"])
 
-    _local_resources_resource = RestResource(
-        "local_resource",
-        "/accounts/{account_id}/local_resources/{resource_id}")
+    # _local_resources_resource = RestResource(
+    #     "local_resource",
+    #     "/accounts/{account_id}/local_resources/{resource_id}")
 
     _media_resource = RestResource("media",
                                    "/accounts/{account_id}/media/{media_id}",
@@ -327,6 +335,17 @@ class Client(six.with_metaclass(RestClientMetaClass)):
     _rates_resource = RestResource("rates",
                                    "/accounts/{account_id}/rates/{rate_id}")
 
+    _apps_resource = RestResource("app",
+                                  "/accounts/{account_id}/apps_store/{app_id}")
+
+    _global_resources_resource = RestResource(
+        "global_resource",
+        "/resources/{resource_id}")
+
+    _local_resources_resource = RestResource(
+        "local_resource",
+        "/accounts/{account_id}/resources/{resource_id}")
+
     _server_resource = RestResource(
         "server",
         "/accounts/{account_id}/servers/{server_id}",
@@ -341,6 +360,14 @@ class Client(six.with_metaclass(RestClientMetaClass)):
              "method": "put"},
             {"name": "get_server_log", "path": "log"}
         ])
+
+    _service_plans_resource = RestResource(
+        "service_plan",
+        "/accounts/{account_id}/service_plans/{service_plan_id}")
+
+    _system_configs_resource = RestResource(
+        "system_config",
+        "/system_configs/{system_config_id}")
 
     _temporal_rules_resource = RestResource(
         "temporal_rule",
@@ -462,3 +489,37 @@ class Client(six.with_metaclass(RestClientMetaClass)):
         request.auth_required = True
 
         return self._execute_request(request, account_id=parent_acct_id)
+
+    def upload_ratedeck(self, path):
+        headers = {'Content-Type': 'text/csv'}
+        with open(path, 'rb') as fd:
+            return self.manual_request('/rates', 'post', headers, fd)
+
+    def add_service_plans_to_account(self, acct_id, service_plan_ids):
+        data = dict(data=dict(add=service_plan_ids))
+        uri = '/accounts/{}/service_plans'.format(acct_id)
+        return self.manual_request(uri, 'post', data=data)
+
+    def manual_request(self, uri, method='get', headers=None,
+                       data=None, files=None):
+        url = self.base_url + uri
+
+        headers_ = {'Content-Type': 'application/json',
+                    'X-Auth-Token': self.auth_token}
+        headers_.update(headers or {})
+        headers = headers_
+
+        method = getattr(requests, method.lower())
+        r = method(
+            url, headers=headers, data=data, files=files)
+        if r.ok:
+            return True, r.json()['data'].replace('\n', '').replace(' ', '')
+        else:
+            return False, r
+
+    def sup(self, module, function, *args):
+        if module.endswith('_maintenance'):
+            module = module.replace('_maintenance', '')
+        uri = '/' + '/'.join(['sup', module, function] + args)
+        success, result = self.manual_request(uri)
+        return success, result
