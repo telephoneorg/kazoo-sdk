@@ -19,7 +19,6 @@ notifications:
     on_failure: always
 
 before_install:
-- source scripts/ci/environment.sh
 - pip install invoke
 
 install:
