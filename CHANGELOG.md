@@ -1,7 +1,7 @@
 # kazoo-sdk
 
-## 0.2.1
-### Oct, 24 2017
+## 0.2.2
+### Nov, 1 2017
 * Added numerous new methods to client, including manual_request.
 
 
