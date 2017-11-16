@@ -21,3 +21,4 @@ docs/_build
 *.pyc
 __pycache__/
 local-notes.txt
+local-note.txt

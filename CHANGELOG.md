@@ -1,5 +1,11 @@
 # kazoo-sdk
 
+## 0.2.3
+### Nov, 16 2017
+* Fixes and optimizations.
+* Added list_apps, activate_app, activate_apps methods to client.
+
+
 ## 0.2.2
 ### Nov, 1 2017
 * Added numerous new methods to client, including manual_request.

@@ -1,5 +1,5 @@
 import logging
-# import json
+import json
 
 import six
 import requests
@@ -509,13 +509,33 @@ class Client(six.with_metaclass(RestClientMetaClass)):
         headers_.update(headers or {})
         headers = headers_
 
+        if isinstance(data, dict):
+            data = json.dumps(data)
+
         method = getattr(requests, method.lower())
         r = method(
             url, headers=headers, data=data, files=files)
         if r.ok:
-            return True, r.json()['data'].replace('\n', '').replace(' ', '')
+            return True, r.json()['data']
         else:
             return False, r
+
+    def list_apps(self, acct_id):
+        uri = '/accounts/{}/apps_store'.format(acct_id)
+        return self.manual_request(uri)
+
+    def activate_app(self, acct_id, app_id, allowed_users='all',
+                     users=None):
+        users = users or []
+        uri = '/accounts/{}/apps_store/{}'.format(acct_id, app_id)
+        data = dict(data=dict(allowed_users=allowed_users, users=users))
+        return self.manual_request(uri, method='post', data=data)
+
+    def activate_apps(self, acct_id, **kwargs):
+        _, apps = self.list_apps(acct_id)
+        return [
+            self.activate_app(acct_id, app['id']) for app in apps]
+
 
     def sup(self, module, function, *args):
         if module.endswith('_maintenance'):
