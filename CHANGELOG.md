@@ -1,5 +1,10 @@
 # kazoo-sdk
 
+## 0.2.4
+### Nov, 27 2017
+* Bugfixes.
+
+
 ## 0.2.3
 ### Nov, 16 2017
 * Fixes and optimizations.

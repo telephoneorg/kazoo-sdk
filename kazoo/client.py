@@ -529,13 +529,12 @@ class Client(six.with_metaclass(RestClientMetaClass)):
         users = users or []
         uri = '/accounts/{}/apps_store/{}'.format(acct_id, app_id)
         data = dict(data=dict(allowed_users=allowed_users, users=users))
-        return self.manual_request(uri, method='post', data=data)
+        return self.manual_request(uri, method='put', data=data)
 
     def activate_apps(self, acct_id, **kwargs):
         _, apps = self.list_apps(acct_id)
         return [
             self.activate_app(acct_id, app['id']) for app in apps]
-
 
     def sup(self, module, function, *args):
         if module.endswith('_maintenance'):

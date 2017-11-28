@@ -5,7 +5,7 @@ from collections import OrderedDict
 from .client import Client
 
 
-VERSION = '0.2.3'
+VERSION = '0.2.4'
 
 
 # monkey-patch json to deserialize into ordered dictionaries, to preserve the
